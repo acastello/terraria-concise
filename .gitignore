@@ -1,0 +1,9 @@
+.stack-work/
+stack.yaml.lock
+gamepedia.cabal
+*~
+*.swp
+*.raw
+*.html
+scalpel
+scalpel-core
