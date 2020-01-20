@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GamepediaSpec.CoreSpec where
 
 import Control.Monad.State as ST
@@ -11,12 +12,16 @@ import Test.Hspec
 
 spec :: Spec
 spec = do
-  describe "getOrCreateItem" $ do
-    it "should never allow for duplicate items" $ do
+  describe "addingOrModifyingItem" $ do
+    it "should never duplicate items by name" $ do
       flip evalStateT def $ do
         return ()
-        getOrCreateItem "item" %
-          (`shouldBe` Right 1)
+        addingOrModifyingItem id "item" (either return (return . sampleItemByID))
+        addingOrModifyingItem id "item" (either return (return . sampleItemByID))
+          % (`shouldBe` sampleItemByID 1)
+
+sampleItemByID :: Int -> Item
+sampleItemByID id = Item id "item" (StaticResource "example") Nothing
 
 infixr 0 %
 (%) :: (MonadTrans t, Monad (t m), Monad m) => t m a -> (a -> m b) -> t m b
