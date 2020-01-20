@@ -7,3 +7,4 @@ gamepedia.cabal
 *.html
 scalpel
 scalpel-core
+dist/
