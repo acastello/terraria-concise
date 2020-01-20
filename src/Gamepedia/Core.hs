@@ -51,7 +51,8 @@ import Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Base64 as BS64
 import Data.Default
 import Data.Function (on)
-import Data.Graph.Inductive as G
+import Data.Graph.Inductive hiding ((&))
+import qualified Data.Graph.Inductive as G
 import Data.Graph.Inductive.NodeMap as G
 import Data.Map as M
 import Data.List as L
@@ -179,11 +180,11 @@ class Component a where
   include :: Terraria -> a -> Terraria
 
 instance Component Item where
-  include ter it = ter Lens.& terraria_items %~ M.insert (it ^. item_name) it
+  include terr it = terr & terraria_items %~ M.insert (it ^. item_name) it
 
 instance Component Recipe where
   include terr Recipe{..} =
-    terr Lens.& terraria_sources %~ G.insEdges allDirections
+    terr & terraria_sources %~ G.insEdges allDirections
     where
       allDirections = liftM2
           ( \(r, n) (c, m) ->
