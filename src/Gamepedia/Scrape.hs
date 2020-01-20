@@ -30,21 +30,25 @@ import Gamepedia.Serial
 -- Wholistic IO, net-capable, runtime-updating Scraper
 type S = ScraperT String (N (RT IO))
 
+{-# DEPRECATED getPage "use scrapeItemPage" #-}
+-- | Get a full item page
 getPage :: S Page
 getPage = liftM4 Page
     (text $ "h1" @: ["id" @= "firstHeading"])
     (text $ "div" @: [hasClass "mw-content-ltr"] // "p")
-    (liftM Just getRecipes <|> return Nothing)
-    getNotes
+    (liftM Just scrapeRecipes <|> return Nothing)
+    scrapeNotes
 
-getNotes :: S String
-getNotes = chroot ("div" @: [hasClass "mw-parser-output"]) $ do
+-- | Get page notes
+scrapeNotes :: S String
+scrapeNotes = chroot ("div" @: [hasClass "mw-parser-output"]) $ do
     inSerial $ do seekNext (text $ "span" @: ["id" @= "Notes"])
                   untilNext (text "h2") $
                     liftM mconcat $ many $ seekNext $ text anySelector
 
-getRecipes :: S [Recipe]
-getRecipes = do
+-- | Scrape and add items belonging to the given recipe
+scrapeRecipes :: S [Recipe]
+scrapeRecipes = do
   chroots ("div" @: [hasClass "crafts"] // "tbody" // "tr") $
     liftM3 Recipe
       (chroots ("td" @: [hasClass "result"] // "span" @: [hasClass "item-link"]) $
@@ -64,8 +68,8 @@ scrapeItemPage = do
       (downloadImage =<<
           attr "src" ("div" @: fmap hasClass ["section", "images"] // "img"))
       (liftM2 (fmap Just . ItemInfo)
-        (text $ "h1" @: ["id" @= "firstHeading"])
-        (text $ "div" @: [hasClass "mw-content-ltr"] // "p"))
+        (text $ "div" @: [hasClass "mw-content-ltr"] // "p")
+        scrapeNotes)
 
 -- | Scrape an inline item
 scrapeItem :: S Item
@@ -74,13 +78,13 @@ scrapeItem = do iName <- attr "title" "a"
                   img <- downloadImage =<< attr "src" "img"
                   return $ Item iID iName img Nothing
 
-{-# WARNING scrapeItemID "Item IDs are not easily attached to actual items" #-}
 -- | Scrape Item ID from item page
 scrapeItemID :: S Int
 scrapeItemID = chroot ("div" @: [hasClass "section", hasClass "ids"] // "li") $ do
   matches ("a" @: ["title" @= "Item IDs"])
   maybe App.empty return . readMaybe =<< text "b"
 
+-- | Parse a link that might be absolute or relative
 parseLink :: String -> S String
 parseLink maybeRelURL = do
   topUrl <- lift ask
@@ -88,6 +92,7 @@ parseLink maybeRelURL = do
     parseURI maybeRelURL
     <|> liftM2 relativeTo (parseRelativeReference maybeRelURL) (parseURI topUrl)
 
+-- | Download raw image data from remote resource
 downloadImage :: String -> S Resource
 downloadImage url = do
   evalUrl <- parseLink url
@@ -102,5 +107,5 @@ scrapeS url scr = runReaderT (scrapeT scr =<< liftIO (downloadURLSpec url)) url
 -- | scrape using and updating serialized Runtime
 (...) :: Component a => S a -> URL -> IO (Maybe a)
 op ... url = runZ $ do mres <- scrapeS url op
-                       forM_ mres ((_2 %=) . flip amend)
+                       forM_ mres ((_2 %=) . flip include)
                        return mres

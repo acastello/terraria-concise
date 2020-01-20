@@ -174,15 +174,15 @@ type Runtime = (Accums, Terraria)
 
 type RT m = StateT Runtime m
 
--- | items amendable to an existing Terraria structure
+-- | Elements that expand an existing Terraria structure
 class Component a where
-  amend :: Terraria -> a -> Terraria
+  include :: Terraria -> a -> Terraria
 
 instance Component Item where
-  amend ter it = ter Lens.& terraria_items %~ M.insert (it ^. item_name) it
+  include ter it = ter Lens.& terraria_items %~ M.insert (it ^. item_name) it
 
 instance Component Recipe where
-  amend terr Recipe{..} =
+  include terr Recipe{..} =
     terr Lens.& terraria_sources %~ G.insEdges allDirections
     where
       allDirections = liftM2
@@ -194,7 +194,7 @@ instance Component Recipe where
           _recipe_result
 
 instance Component a => Component [a] where
-  amend ter xs = L.foldr (.) id (flip amend <$> xs) ter
+  include ter xs = L.foldr (.) id (flip include <$> xs) ter
 
 -- | Get Item or create its ID
 getOrCreateItem :: Monad m => String -> RT m (Either Item Int)
