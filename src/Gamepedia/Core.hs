@@ -180,7 +180,9 @@ class Component a where
   include :: Terraria -> a -> Terraria
 
 instance Component Item where
-  include terr it = terr & terraria_items %~ M.insert (it ^. item_name) it
+  include terr it =
+    terr & terraria_items %~ M.insert (it ^. item_name) it
+         & terraria_sources %~ G.insNode (it ^. item_id, it)
 
 instance Component Recipe where
   include terr Recipe{..} =
