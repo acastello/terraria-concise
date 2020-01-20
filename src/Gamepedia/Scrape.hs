@@ -107,5 +107,5 @@ scrapeS url scr = runReaderT (scrapeT scr =<< liftIO (downloadURLSpec url)) url
 -- | scrape using and updating serialized Runtime
 (...) :: Component a => S a -> URL -> IO (Maybe a)
 op ... url = runZ $ do mres <- scrapeS url op
-                       forM_ mres ((_2 %=) . flip include)
+                       forM_ mres ((_2 %=) . include)
                        return mres

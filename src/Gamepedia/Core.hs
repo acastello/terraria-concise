@@ -32,7 +32,11 @@ module Gamepedia.Core (
 , source_station
 , source_yield
 , Terraria(..)
+, terraria_sources
+, terraria_items
 , Accums(..)
+, accums_item_ids
+, accums_max_id
 , Runtime
 , RT
 , itemContext
@@ -177,15 +181,15 @@ type RT m = StateT Runtime m
 
 -- | Elements that expand an existing Terraria structure
 class Component a where
-  include :: Terraria -> a -> Terraria
+  include :: a -> Terraria -> Terraria
 
 instance Component Item where
-  include terr it =
+  include it terr =
     terr & terraria_items %~ M.insert (it ^. item_name) it
          & terraria_sources %~ G.insNode (it ^. item_id, it)
 
 instance Component Recipe where
-  include terr Recipe{..} =
+  include Recipe{..} terr =
     terr & terraria_sources %~ G.insEdges allDirections
     where
       allDirections = liftM2
@@ -197,7 +201,7 @@ instance Component Recipe where
           _recipe_result
 
 instance Component a => Component [a] where
-  include ter xs = L.foldr (.) id (flip include <$> xs) ter
+  include xs ter = L.foldr (.) id (include <$> xs) ter
 
 -- | Get Item or create its ID
 getOrCreateItem :: Monad m => String -> RT m (Either Item Int)
