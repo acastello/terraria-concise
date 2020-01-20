@@ -54,18 +54,18 @@ getRecipes = do
       (chroot ("td" @: [hasClass "station"] // "span" @: [hasClass "item-link"]) $
         scrapeItem)
 
--- | Scrape all item info in the page
+-- | Scrape all item info in the page. Overwrite any existing info
 scrapeItemPage :: S Item
 scrapeItemPage = do
-  iName <- text $ "h1" @: ["id" @= "firstHeading"]
-  liftM4 Item
-    (either _item_id id <^^> getOrCreateItem iName)
-    (return iName)
-    (downloadImage =<<
-        attr "src" ("div" @: fmap hasClass ["section", "images"] // "img"))
-    $ liftM2 (fmap Just . ItemInfo)
-      (text $ "h1" @: ["id" @= "firstHeading"])
-      (text $ "div" @: [hasClass "mw-content-ltr"] // "p")
+  itName <- text $ "h1" @: ["id" @= "firstHeading"]
+  addingOrModifyingItem (lift . lift) itName $ \eith -> do
+    let itID = either _item_id id eith
+    liftM2 (Item itID itName)
+      (downloadImage =<<
+          attr "src" ("div" @: fmap hasClass ["section", "images"] // "img"))
+      (liftM2 (fmap Just . ItemInfo)
+        (text $ "h1" @: ["id" @= "firstHeading"])
+        (text $ "div" @: [hasClass "mw-content-ltr"] // "p"))
 
 -- | Scrape an inline item
 scrapeItem :: S Item

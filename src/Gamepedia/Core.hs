@@ -5,7 +5,41 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TupleSections #-}
 
-module Gamepedia.Core where
+module Gamepedia.Core (
+  ItemInfo(..)
+, iteminfo_intro
+, iteminfo_notes
+, Item(..)
+, item_info
+, item_sprite
+, Quantified
+, Recipe(..)
+, recipe_result
+, recipe_ingredients
+, recipe_station
+, Page(..)
+, page_intro
+, page_notes
+, page_recipes
+, page_title
+, Resource(..)
+, resourceURI
+, Component(..)
+, Source(..)
+, source_element
+, source_npc
+, source_rate
+, source_station
+, source_yield
+, Terraria(..)
+, Accums(..)
+, Runtime
+, RT
+, itemContext
+, addingItem
+, addingOrModifyingItem
+, debug
+    ) where
 
 import Control.Monad
 import Control.Monad.Trans
@@ -177,10 +211,15 @@ getOrCreateItem iName = do
 
 addingItem :: (Monad m, Monad n)
   => (forall a. RT m a -> n a) -> String -> (Int -> n Item) -> n Item
-addingItem liftF itName constructM = do
+addingItem liftF itName constructM =
+    addingOrModifyingItem liftF itName (either return constructM)
+
+addingOrModifyingItem :: (Monad m, Monad n)
+  => (forall a. RT m a -> n a) -> String -> (Either Item Int -> n Item) -> n Item
+addingOrModifyingItem liftF itName constructM = do
   liftF (getOrCreateItem itName) >>= \case
-    Left it -> return it
-    Right iID -> do it' <- constructM iID
+    Left it -> constructM (Left it)
+    Right iID -> do it' <- constructM (Right iID)
                     liftF $ addItem it'
                     return it'
 
@@ -213,13 +252,3 @@ itemContext iID = G.match iID <$!> use (_2 . terraria_sources) >>= \case
 -- | write some html
 debug :: String -> IO ()
 debug t = Prelude.writeFile "debug.html" $ t -- "<html><body>" <> t <> "</body></html>"
-
-infixl 4 <^>
-(<^>) :: (MonadTrans t, Monad (t m), Monad m) =>
-      (a -> b) -> m a -> t m b
-f <^> m = f <$!> lift m
-
-infixl 4 <^^>
-(<^^>) :: (MonadTrans t', MonadTrans t, Monad (t' (t m)), Monad (t m), Monad m) =>
-      (a -> b) -> m a -> t' (t m) b
-f <^^> m = f <$!> lift (lift m)

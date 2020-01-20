@@ -17,7 +17,6 @@ spec = do
         return ()
         getOrCreateItem "item" %
           (`shouldBe` Right 1)
-  return ()
 
 infixr 0 %
 (%) :: (MonadTrans t, Monad (t m), Monad m) => t m a -> (a -> m b) -> t m b
