@@ -79,8 +79,8 @@ instance Show Resource where
 
 -- | Encode (static) or reference (remote) a resource
 resourceURI :: Resource -> String
-resourceURI (StaticResource bs) = "data:image/png;base64,"
-    <> (BS.unpack $ BS64.encode bs)
+resourceURI (StaticResource bs) =
+  "data:image/png;base64," <> (BS.unpack $ BS64.encode bs)
 resourceURI (RemoteResource uri) = uri
 
 -- | Info extracted from Item page
@@ -182,8 +182,8 @@ instance Component Item where
   amend ter it = ter Lens.& terraria_items %~ M.insert (it ^. item_name) it
 
 instance Component Recipe where
-  amend ter Recipe{..} =
-    ter Lens.& terraria_sources %~ G.insEdges allDirections
+  amend terr Recipe{..} =
+    terr Lens.& terraria_sources %~ G.insEdges allDirections
     where
       allDirections = liftM2
           ( \(r, n) (c, m) ->
@@ -217,11 +217,9 @@ addingItem liftF itName constructM =
 addingOrModifyingItem :: (Monad m, Monad n)
   => (forall a. RT m a -> n a) -> String -> (Either Item Int -> n Item) -> n Item
 addingOrModifyingItem liftF itName constructM = do
-  liftF (getOrCreateItem itName) >>= \case
-    Left it -> constructM (Left it)
-    Right iID -> do it' <- constructM (Right iID)
-                    liftF $ addItem it'
-                    return it'
+  it <- liftF (getOrCreateItem itName) >>= constructM
+  liftF $ addItem it
+  return it
 
 -- | add a singleton node
 addItem :: Monad m => Item -> RT m ()

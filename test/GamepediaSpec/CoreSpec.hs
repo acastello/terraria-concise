@@ -21,7 +21,7 @@ spec = do
           % (`shouldBe` sampleItemByID 1)
 
 sampleItemByID :: Int -> Item
-sampleItemByID id = Item id "item" (StaticResource "example") Nothing
+sampleItemByID iID = Item iID "item" (StaticResource "example") Nothing
 
 infixr 0 %
 (%) :: (MonadTrans t, Monad (t m), Monad m) => t m a -> (a -> m b) -> t m b
